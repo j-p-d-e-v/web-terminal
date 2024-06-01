@@ -73,6 +73,7 @@ async fn main() {
     warp::serve(routes).run((host.octets(),port)).await;
 }
 
+/// Runs the websocket terminal session
 async fn websocket_terminal(
     socket: WebSocket,
     terminal_name: String,
@@ -139,13 +140,17 @@ async fn websocket_terminal(
                             };
                         }
                     }
+                    // Terminates/Aborts the thread spawn by the tokio.
                     term_tx_thread.abort();
+                    // Terminates the child process spawned by the forkpty.
                     if let Err(err) = kill(child,nix::sys::signal::Signal::SIGQUIT)  {
                         println!("UNABLE_TO_EXIT_CHILD_PROCESS: {:?}. ERROR: {:?}",child,err);
                     }
+                    // Closes the websocket transceiver that will also close the websocket session.
                     if let Err(err) = ws_tx_state.lock().await.close().await {
                         println!("UNABLE_CLOSE_SOCKET with Master: {:?}, Child:{:?}. ERROR: {:?}",master,child,err);
                     }
+                    // Drops the websocket transceiver shared state.
                     drop(ws_tx_state);
                     println!("DISCONNECTED: {}",terminal_name);
                 }

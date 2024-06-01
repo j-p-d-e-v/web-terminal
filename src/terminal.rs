@@ -18,9 +18,12 @@ use futures::{
 use tokio::sync::{Mutex, MutexGuard};
 use warp::ws::{ Message, WebSocket };
 
+/// Struct for Terminal Instance
 #[derive(Debug)]
 pub struct Terminal;
 impl Terminal{
+
+    /// Reads the output of the executed commands then send the output to the websocket client.
     pub fn reader(master_raw_fd: RawFd, wx_tx_state_reader: Arc<Mutex<SplitSink<WebSocket, Message>>>) -> tokio::task::JoinHandle<()> {                              
         tokio::spawn(async move {
             let mut buf: BufReader<File> = BufReader::new( unsafe {  File::from_raw_fd(master_raw_fd) });    
@@ -56,6 +59,7 @@ impl Terminal{
         })
     }
 
+    ///Write the command in the master file descriptor issued by the forkpty.
     pub fn writer(f: &mut File, command: &[u8]) -> Result<bool,std::io::Error> { 
         if let Err(error) = f.write_all(command) {
             return Err(error);
