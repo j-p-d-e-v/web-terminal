@@ -48,6 +48,10 @@ struct Args {
     /// The port number to use.
     #[arg(long, default_value="3030",help="The port of the server.")]
     port: u16,
+    
+    /// The heartbeat interval.
+    #[arg(long, default_value="30",help="The heartbeat interval.")]
+    heartbeat_interval: u64,
 }
 #[tokio::main]
 async fn main() {
@@ -55,17 +59,22 @@ async fn main() {
     let args: Args  = Args::parse();
     let port: u16 = args.port;
     let host: Ipv4Addr = args.host.parse().expect("Unable to parse host as IPv4 Address");  
+    let heartbeat_interval: u64 = args.heartbeat_interval;
+
+    let with_args = warp::any().map(move || heartbeat_interval.clone());
 
     let ws_terminal = warp::path("terminal")
     .and(warp::ws())
     .and(warp::query::<QueryParams>())
-    .map(| ws: warp::ws::Ws, query: QueryParams | {
+    .and(with_args)
+    .map(| ws: warp::ws::Ws, query: QueryParams, heartbeat_interval: u64 | {
         ws.on_upgrade(move|socket| websocket_terminal(
             socket,
             query.terminal_name,
             query.terminal_cols,
             query.terminal_rows,
             query.terminal_shell,
+            heartbeat_interval
         ))
     });
     let routes = ws_terminal;
@@ -79,7 +88,8 @@ async fn websocket_terminal(
     terminal_name: String,
     terminal_cols: u16,
     terminal_rows: u16,
-    terminal_shell: String
+    terminal_shell: String,
+    heartbeat_interval: u64
 ){
     let shell: String = if terminal_shell.len() > 0 {
         terminal_shell
@@ -107,7 +117,7 @@ async fn websocket_terminal(
                     let mut file_handler = unsafe { File::from_raw_fd(master_fd_write) };
 
                     loop {
-                        if ws_client_last_seen.elapsed() >= std::time::Duration::from_secs(30) {
+                        if ws_client_last_seen.elapsed() >= std::time::Duration::from_secs(heartbeat_interval) {
                             eprintln!("WEBSOCKET_CLIENT_DISCONNECTED");
                             break;
                         }

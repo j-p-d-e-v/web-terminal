@@ -35,6 +35,11 @@ Options:
           
           [default: 3030]
 
+      --heartbeat-interval <HEARTBEAT_INTERVAL>
+          The heartbeat interval.
+          
+          [default: 30]
+
   -h, --help
           Print help (see a summary with '-h')
 
