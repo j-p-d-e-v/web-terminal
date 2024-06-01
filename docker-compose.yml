@@ -1,0 +1,9 @@
+services:
+  termi:
+    image: node:latest
+    working_dir: /rust/ui
+    tty: true
+    ports:
+      - 7060:80
+    volumes:
+      - ./:/rust
